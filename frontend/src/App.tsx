@@ -152,7 +152,8 @@ function exportEventsToCsv(events: HistoryEvent[], repositoryName: string) {
   const columns = ["Data", "Tipo", "Título", "Descrição", "Autor", "Significado da data", "URL"];
   const escapeCell = (value: string | null | undefined) => {
     const text = String(value ?? "");
-    const safeText = /^[\\s]*[=+\\-@]/.test(text) ? "'" + text : text;
+    const firstCharacter = text.trimStart()[0];
+    const safeText = firstCharacter && ["=", "+", "-", "@"].includes(firstCharacter) ? "'" + text : text;
     return '"' + safeText.replace(/"/g, '""') + '"';
   };
 
