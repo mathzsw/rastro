@@ -4,11 +4,21 @@ export interface HistoryEvent {
   id: string;
   type: string;
   title: string;
-  description: string;
-  date: string;
+  description: string | null;
+  date: string | null;
   dateMeaning: string;
   author: string | null;
-  url: string;
+  url: string | null;
+}
+
+export interface HistoryMilestone {
+  id: string;
+  type?: string;
+  title: string;
+  description: string;
+  date: string | null;
+  author: string | null;
+  url: string | null;
 }
 
 export interface HistoryResponse {
@@ -23,7 +33,10 @@ export interface HistoryResponse {
     releases: number;
     pullRequests: number;
     events: number;
+    contributors: number;
+    milestones: number;
   };
+  milestones: HistoryMilestone[];
   events: HistoryEvent[];
   coverage: {
     limitPerCategory: number;
@@ -31,10 +44,10 @@ export interface HistoryResponse {
   };
 }
 
-export async function getHistory(repositoryUrl: string) {
-  const response = await api.get("/history", {
+export async function getHistory(repositoryUrl: string): Promise<HistoryResponse> {
+  const response = await api.get<HistoryResponse>("/history", {
     params: { url: repositoryUrl },
   });
 
-  return response.data as HistoryResponse;
+  return response.data;
 }
