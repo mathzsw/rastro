@@ -266,22 +266,29 @@ function App() {
   }, [allEvents]);
 
   const contributorStats = useMemo(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { name: string; count: number }>();
     for (const event of allEvents) {
       const author = event.author?.trim();
       if (!author) continue;
-      counts.set(author, (counts.get(author) ?? 0) + 1);
+
+      const key = author.toLocaleLowerCase("pt-BR");
+      const current = counts.get(key);
+      counts.set(key, {
+        name: current?.name ?? author,
+        count: (current?.count ?? 0) + 1,
+      });
     }
 
-    return [...counts.entries()]
-      .map(([name, count]) => ({ name, count }))
+    return [...counts.values()]
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pt-BR"))
       .slice(0, 5);
   }, [allEvents]);
 
-  const identifiedAuthors = contributorStats.length > 0
-    ? new Set(allEvents.map((event) => event.author?.trim()).filter(Boolean)).size
-    : 0;
+  const identifiedAuthors = new Set(
+    allEvents
+      .map((event) => event.author?.trim().toLocaleLowerCase("pt-BR"))
+      .filter(Boolean),
+  ).size;
 
   function toggleChapter(chapterId: string) {
     setExpandedChapters((previous) => ({
