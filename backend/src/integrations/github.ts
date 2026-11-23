@@ -100,7 +100,7 @@ export function parseRepositoryUrl(value: unknown) {
   const parts = parsedUrl.pathname.split("/").filter(Boolean);
 
   if (parts.length !== 2) {
-    throw new Error("Informe a URL no formato github.com/ proprietário/repositório.");
+    throw new Error("Informe a URL no formato github.com/proprietário/repositório.");
   }
 
   const owner = parts[0];
