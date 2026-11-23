@@ -1,9 +1,9 @@
-
 const GITHUB_API = "https://api.github.com";
 
 const headers = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
+  "User-Agent": "RASTRO",
 };
 
 export interface GitHubRepository {
@@ -75,37 +75,42 @@ export interface GitHubPullRequest {
   } | null;
 }
 
-export function parseRepositoryUrl(url: string) {
-  try {
-    const parsedUrl = new URL(url.trim());
-
-    if (
-      parsedUrl.hostname !== "github.com" &&
-      parsedUrl.hostname !== "www.github.com"
-    ) {
-      return null;
-    }
-
-    const parts = parsedUrl.pathname
-      .split("/")
-      .filter(Boolean);
-
-    if (parts.length !== 2) {
-      return null;
-    }
-
-    const owner = parts[0];
-    const repository = parts[1]
-      .replace(/\.git$/, "");
-
-    if (!owner || !repository) {
-      return null;
-    }
-
-    return { owner, repository };
-  } catch {
-    return null;
+export function parseRepositoryUrl(value: unknown) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("Informe a URL de um repositório público do GitHub.");
   }
+
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(value.trim());
+  } catch {
+    throw new Error("A URL informada não é válida.");
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+
+  if (
+    parsedUrl.protocol !== "https:" ||
+    (hostname !== "github.com" && hostname !== "www.github.com")
+  ) {
+    throw new Error("Informe uma URL HTTPS do github.com.");
+  }
+
+  const parts = parsedUrl.pathname.split("/").filter(Boolean);
+
+  if (parts.length !== 2) {
+    throw new Error("Informe a URL no formato github.com/proprietário/repositório.");
+  }
+
+  const owner = parts[0];
+  const repository = parts[1]?.replace(/\.git$/i, "");
+
+  if (!owner || !repository) {
+    throw new Error("Não foi possível identificar o proprietário e o repositório.");
+  }
+
+  return { owner, repository };
 }
 
 async function fetchGitHub<T>(url: string): Promise<T> {
@@ -118,13 +123,11 @@ async function fetchGitHub<T>(url: string): Promise<T> {
 
     if (response.status === 403 || response.status === 429) {
       throw new Error(
-        "Limite de requisições da API do GitHub atingido. Tente novamente mais tarde."
+        "Limite de requisições da API do GitHub atingido. Tente novamente mais tarde.",
       );
     }
 
-    throw new Error(
-      `Erro ao consultar o GitHub: ${response.status}`
-    );
+    throw new Error(`Erro ao consultar o GitHub: ${response.status}`);
   }
 
   return response.json() as Promise<T>;
@@ -137,10 +140,7 @@ async function fetchAllPages<T>(endpoint: string): Promise<T[]> {
 
   for (let page = 1; page <= maxPages; page++) {
     const separator = endpoint.includes("?") ? "&" : "?";
-
-    const url =
-      `${endpoint}${separator}per_page=${perPage}&page=${page}`;
-
+    const url = `${endpoint}${separator}per_page=${perPage}&page=${page}`;
     const data = await fetchGitHub<T[]>(url);
 
     results.push(...data);
@@ -155,40 +155,32 @@ async function fetchAllPages<T>(endpoint: string): Promise<T[]> {
 
 export async function getRepository(
   owner: string,
-  repository: string
+  repository: string,
 ): Promise<GitHubRepository> {
-  const url =
-    `${GITHUB_API}/repos/${owner}/${repository}`;
-
+  const url = `${GITHUB_API}/repos/${owner}/${repository}`;
   return fetchGitHub<GitHubRepository>(url);
 }
 
 export async function getCommits(
   owner: string,
-  repository: string
+  repository: string,
 ): Promise<GitHubCommit[]> {
-  const url =
-    `${GITHUB_API}/repos/${owner}/${repository}/commits`;
-
+  const url = `${GITHUB_API}/repos/${owner}/${repository}/commits`;
   return fetchAllPages<GitHubCommit>(url);
 }
 
 export async function getReleases(
   owner: string,
-  repository: string
+  repository: string,
 ): Promise<GitHubRelease[]> {
-  const url =
-    `${GITHUB_API}/repos/${owner}/${repository}/releases`;
-
+  const url = `${GITHUB_API}/repos/${owner}/${repository}/releases`;
   return fetchAllPages<GitHubRelease>(url);
 }
 
 export async function getPullRequests(
   owner: string,
-  repository: string
+  repository: string,
 ): Promise<GitHubPullRequest[]> {
-  const url =
-    `${GITHUB_API}/repos/${owner}/${repository}/pulls?state=all`;
-
+  const url = `${GITHUB_API}/repos/${owner}/${repository}/pulls?state=all`;
   return fetchAllPages<GitHubPullRequest>(url);
 }
